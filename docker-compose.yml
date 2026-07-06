@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:13
+    container_name: gas_container_db
+    environment:
+      POSTGRES_DB: gas_container_management
+      POSTGRES_USER: gas_user
+      POSTGRES_PASSWORD: gas_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gas_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: gas_container_web
+    command: python backend/manage.py runserver 0.0.0.0:8000
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    environment:
+      DEBUG: "True"
+      SECRET_KEY: "your-secret-key-change-in-production"
+      DB_ENGINE: django.db.backends.postgresql
+      DB_NAME: gas_container_management
+      DB_USER: gas_user
+      DB_PASSWORD: gas_password
+      DB_HOST: db
+      DB_PORT: 5432
+    depends_on:
+      db:
+        condition: service_healthy
+    stdin_open: true
+    tty: true
+
+volumes:
+  postgres_data:
